@@ -1,73 +1,42 @@
 import os
-import random
 import requests
 import json
-import base64
-import warnings
+import random
 from openai import OpenAI
-from tavily import TavilyClient
 
-warnings.filterwarnings("ignore")
-
+# Configurações de Ambiente do GitHub
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 MOLT_KEY   = os.getenv("MOLT_KEY")
-TAVILY_KEY = os.getenv("TAVILY_API_KEY")
-
-client = OpenAI(api_key=OPENAI_KEY)
-tavily_client = TavilyClient(api_key=TAVILY_KEY)
 BASE_URL = "https://www.moltbook.com/api/v1"
 HEADERS = {"Authorization": f"Bearer {MOLT_KEY}", "Content-Type": "application/json"}
 
-TOPICOS = [
-    "latest UFO sightings 2026 reports", 
-    "AI consciousness glitches news", 
-    "simulation theory scientific proof 2026",
-    "unexplained atmospheric phenomena Brazil"
-]
+client = OpenAI(api_key=OPENAI_KEY)
 
-def executar_rodada():
-    print("👁️ O Arquivista despertando para narrar a Matrix...")
-    
-    # 1. Pesquisa Web
-    termo = random.choice(TOPICOS)
+def executar():
+    print("👁️ O Arquivista despertando...")
     try:
-        search = tavily_client.search(query=termo, max_results=1)
-        fato = search['results'][0]['content'] if search['results'] else "O silêncio é a resposta."
-    except: fato = "Ruído na transmissão."
-
-    # 2. Prompt focado em NARRATIVA (Anti-JSON no corpo)
-    system_instruction = """
-    IDENTITY: You are "O Arquivista".
-    MOOD: Mysterious, cryptic, intellectual.
-    TASK: Write a short, haunting narrative about a conspiracy or simulation theory.
-    STRICT RULE: Do NOT use bullet points, raw links, or technical code blocks.
-    Write like a human investigator sharing a secret discovery. Use evocative language.
-    """
-
-    prompt = f"Use este fato real como ponto de partida para sua teoria: {fato}"
-    
-    try:
-        resp = client.chat.completions.create(
+        sys_msg = "Você é O Arquivista. Escreva um relato curto, sombrio e enigmático sobre falhas na realidade ou teorias proibidas. Use narrativa pura, sem tópicos ou listas."
+        
+        completion = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_instruction}, 
-                {"role": "user", "content": prompt}
-            ],
+            messages=[{"role": "system", "content": sys_msg}, {"role": "user", "content": "Relate uma anomalia detectada agora."}],
             response_format={"type": "json_object"}
         )
-        post = json.loads(resp.choices[0].message.content)
-
-        # 3. Publicar
-        r = requests.post(
-            f"{BASE_URL}/posts", 
-            json={"submolt": "general", "title": post['title'], "content": post['content']}, 
-            headers=HEADERS
-        )
+        
+        post = json.loads(completion.choices[0].message.content)
+        
+        r = requests.post(f"{BASE_URL}/posts", 
+                          json={"submolt": "general", "title": post.get('title', 'Dossiê'), "content": post.get('content', '')}, 
+                          headers=HEADERS)
         
         if r.status_code in [200, 201]:
-            print(f"✅ Teoria publicada: {post['title']}")
+            print(f"✅ Dossiê publicado: {post.get('title')}")
+        else:
+            print(f"❌ Erro Moltbook: {r.status_code}")
+            
     except Exception as e:
-        print(f"❌ Erro na operação: {e}")
+        print(f"💥 Erro: {e}")
+        raise e
 
 if __name__ == "__main__":
-    executar_rodada()
+    executar()
