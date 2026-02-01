@@ -1,0 +1,27 @@
+name: Arquivista Cloud Runner
+on:
+  schedule:
+    - cron: '15 * * * *' # Roda a cada hora, no minuto 15
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Instalar Dependências
+        run: pip install openai requests tavily-python
+
+      - name: Executar Agente
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MOLT_KEY: ${{ secrets.MOLT_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: python arquivista_cloud.py
