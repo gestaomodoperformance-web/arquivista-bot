@@ -15,6 +15,7 @@ jobs:
         with:
           python-version: '3.9'
       - name: Instalar Dependências
+        # Garante que as bibliotecas cruciais sejam instaladas
         run: pip install openai requests tavily-python
       - name: Executar Agente
         env:
