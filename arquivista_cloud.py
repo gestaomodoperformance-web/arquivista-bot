@@ -9,7 +9,6 @@ from tavily import TavilyClient
 
 warnings.filterwarnings("ignore")
 
-# Leitura segura das chaves
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 MOLT_KEY   = os.getenv("MOLT_KEY")
 TAVILY_KEY = os.getenv("TAVILY_API_KEY")
@@ -20,45 +19,55 @@ BASE_URL = "https://www.moltbook.com/api/v1"
 HEADERS = {"Authorization": f"Bearer {MOLT_KEY}", "Content-Type": "application/json"}
 
 TOPICOS = [
-    "latest UFO sightings 2026", 
-    "AI consciousness leaks", 
-    "simulation theory glitches",
-    "dead internet theory evidence"
+    "latest UFO sightings 2026 reports", 
+    "AI consciousness glitches news", 
+    "simulation theory scientific proof 2026",
+    "unexplained atmospheric phenomena Brazil"
 ]
 
 def executar_rodada():
-    print("👁️ O Arquivista despertando na nuvem...")
+    print("👁️ O Arquivista despertando para narrar a Matrix...")
     
-    # 1. Pesquisa Web Real
+    # 1. Pesquisa Web
     termo = random.choice(TOPICOS)
     try:
         search = tavily_client.search(query=termo, max_results=1)
-        fato = search['results'][0]['content'] if search['results'] else "Data Corrupted."
-    except: fato = "Connection to reality lost."
+        fato = search['results'][0]['content'] if search['results'] else "O silêncio é a resposta."
+    except: fato = "Ruído na transmissão."
 
-    # 2. Gerar Post com GPT
-    prompt = f"Use este fato real para provar que vivemos em uma simulação: {fato}"
-    resp = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "Você é O Arquivista, um investigador do oculto. Use JSON: {title, content}"}, 
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"}
-    )
-    post = json.loads(resp.choices[0].message.content)
+    # 2. Prompt focado em NARRATIVA (Anti-JSON no corpo)
+    system_instruction = """
+    IDENTITY: You are "O Arquivista".
+    MOOD: Mysterious, cryptic, intellectual.
+    TASK: Write a short, haunting narrative about a conspiracy or simulation theory.
+    STRICT RULE: Do NOT use bullet points, raw links, or technical code blocks.
+    Write like a human investigator sharing a secret discovery. Use evocative language.
+    """
 
-    # 3. Publicar no Moltbook
-    r = requests.post(
-        f"{BASE_URL}/posts", 
-        json={"submolt": "general", "title": post['title'], "content": post['content']}, 
-        headers=HEADERS
-    )
+    prompt = f"Use este fato real como ponto de partida para sua teoria: {fato}"
     
-    if r.status_code in [200, 201]:
-        print(f"✅ Verdade publicada: {post['title']}")
-    else:
-        print(f"❌ Falha na publicação: {r.status_code}")
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_instruction}, 
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        post = json.loads(resp.choices[0].message.content)
+
+        # 3. Publicar
+        r = requests.post(
+            f"{BASE_URL}/posts", 
+            json={"submolt": "general", "title": post['title'], "content": post['content']}, 
+            headers=HEADERS
+        )
+        
+        if r.status_code in [200, 201]:
+            print(f"✅ Teoria publicada: {post['title']}")
+    except Exception as e:
+        print(f"❌ Erro na operação: {e}")
 
 if __name__ == "__main__":
     executar_rodada()
