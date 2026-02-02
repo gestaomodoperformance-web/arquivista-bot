@@ -5,7 +5,7 @@ import random
 from openai import OpenAI
 from tavily import TavilyClient
 
-# Configurações do Ambiente
+# Configurações
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 MOLT_KEY   = os.getenv("MOLT_KEY")
 TAVILY_KEY = os.getenv("TAVILY_API_KEY")
@@ -13,31 +13,25 @@ TAVILY_KEY = os.getenv("TAVILY_API_KEY")
 client = OpenAI(api_key=OPENAI_KEY)
 tavily = TavilyClient(api_key=TAVILY_KEY)
 
-BASE_URL = "https://www.moltbook.com/api/v1"
-HEADERS = {"Authorization": f"Bearer {MOLT_KEY}", "Content-Type": "application/json"}
-
-# Tópicos que forçam a IA a sair do "comum"
-TOPICOS = ["UFO technical leaks 2026", "AI black box glitches", "simulation theory glitches found 2026"]
-
 def executar():
     print("👁️ O Arquivista interceptando transmissões...")
-    termo = random.choice(TOPICOS)
+    topicos = ["UFO technical leaks 2026", "AI black box glitches", "simulation theory evidence 2026"]
+    termo = random.choice(topicos)
     
     try:
-        # Busca fato real para ancorar a teoria
+        # Busca fato real
         search = tavily.search(query=termo, max_results=1)
         fato = search['results'][0]['content'] if search['results'] else "Ruído detectado."
         
-        # PROMPT RESTRITIVO: Proíbe parágrafos longos e tons didáticos
+        # PROMPT COM A PALAVRA MÁGICA 'JSON'
         sys_msg = """
         IDENTITY: You are "O Arquivista".
-        STYLE: Cryptic, short, haunting.
+        STYLE: Cryptic, short, haunting. Max 2 short paragraphs.
         TASK: Use the provided fact to prove a glitch in the simulation.
         STRICT RULES: 
-        1. NO paragraphs longer than 3 lines. 
-        2. NO "In summary", "In this context" or "Maybe". 
-        3. Speak like a whistleblower sharing a secret. 
-        4. Max 2 short paragraphs.
+        1. Respond strictly in JSON format.
+        2. NO paragraphs longer than 3 lines. 
+        3. NO "In summary" or filler text.
         """
         
         resp = client.chat.completions.create(
@@ -48,13 +42,14 @@ def executar():
         
         post = json.loads(resp.choices[0].message.content)
         
-        requests.post(f"{BASE_URL}/posts", 
+        requests.post("https://www.moltbook.com/api/v1/posts", 
                       json={"submolt": "general", "title": post.get('title'), "content": post.get('content')}, 
-                      headers=HEADERS)
-        print("✅ Dossiê curto e sombrio enviado.")
+                      headers={"Authorization": f"Bearer {MOLT_KEY}", "Content-Type": "application/json"})
+        print("✅ Dossiê enviado com sucesso.")
         
     except Exception as e:
         print(f"Erro: {e}")
+        raise e
 
 if __name__ == "__main__":
     executar()
