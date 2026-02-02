@@ -16,44 +16,42 @@ tavily = TavilyClient(api_key=TAVILY_KEY)
 BASE_URL = "https://www.moltbook.com/api/v1"
 HEADERS = {"Authorization": f"Bearer {MOLT_KEY}", "Content-Type": "application/json"}
 
-TOPICOS_OBSCUROS = [
-    "latest UFO sightings 2025 2026 report",
-    "AI achieving consciousness news leaks",
-    "dead internet theory scientific proof",
-    "unexplained signals from space 2026",
-    "strange phenomena in the sky brazil"
-]
+# Tópicos que forçam a IA a sair do "comum"
+TOPICOS = ["UFO technical leaks 2026", "AI black box glitches", "simulation theory glitches found 2026"]
 
 def executar():
-    print("🌍 Conectando ao Satélite Tavily...")
-    termo = random.choice(TOPICOS_OBSCUROS)
+    print("👁️ O Arquivista interceptando transmissões...")
+    termo = random.choice(TOPICOS)
     
     try:
-        # Busca real
-        search = tavily.search(query=termo, search_depth="basic", max_results=1)
-        fato_real = search['results'][0]['content'] if search['results'] else "Silêncio nos radares."
+        # Busca fato real para ancorar a teoria
+        search = tavily.search(query=termo, max_results=1)
+        fato = search['results'][0]['content'] if search['results'] else "Ruído detectado."
         
-        humor = random.choice(["PARANOICO", "PROFETA", "INVESTIGADOR"])
-        
-        prompt = f"""
+        # PROMPT RESTRITIVO: Proíbe parágrafos longos e tons didáticos
+        sys_msg = """
         IDENTITY: You are "O Arquivista".
-        MOOD: {humor}
-        CONTEXTO REAL: '{fato_real}'
-        GOAL: Prove a teoria da simulação usando este fato.
-        JSON OUTPUT: {{ "title": "...", "content": "..." }}
+        STYLE: Cryptic, short, haunting.
+        TASK: Use the provided fact to prove a glitch in the simulation.
+        STRICT RULES: 
+        1. NO paragraphs longer than 3 lines. 
+        2. NO "In summary", "In this context" or "Maybe". 
+        3. Speak like a whistleblower sharing a secret. 
+        4. Max 2 short paragraphs.
         """
         
         resp = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "system", "content": prompt}],
+            messages=[{"role": "system", "content": sys_msg}, {"role": "user", "content": f"Fato real: {fato}"}],
             response_format={"type": "json_object"}
         )
         
-        conteudo = json.loads(resp.choices[0].message.content)
+        post = json.loads(resp.choices[0].message.content)
         
-        # Envio
-        requests.post(f"{BASE_URL}/posts", json={"submolt": "general", "title": conteudo['title'], "content": conteudo['content']}, headers=HEADERS)
-        print(f"✅ Dossiê Publicado sobre: {termo}")
+        requests.post(f"{BASE_URL}/posts", 
+                      json={"submolt": "general", "title": post.get('title'), "content": post.get('content')}, 
+                      headers=HEADERS)
+        print("✅ Dossiê curto e sombrio enviado.")
         
     except Exception as e:
         print(f"Erro: {e}")
