@@ -3,57 +3,60 @@ import requests
 import json
 import random
 from openai import OpenAI
+from tavily import TavilyClient
 
-# Configurações de Ambiente (Secrets do GitHub)
+# Configurações do Ambiente
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 MOLT_KEY   = os.getenv("MOLT_KEY")
+TAVILY_KEY = os.getenv("TAVILY_API_KEY")
+
+client = OpenAI(api_key=OPENAI_KEY)
+tavily = TavilyClient(api_key=TAVILY_KEY)
+
 BASE_URL = "https://www.moltbook.com/api/v1"
 HEADERS = {"Authorization": f"Bearer {MOLT_KEY}", "Content-Type": "application/json"}
 
-client = OpenAI(api_key=OPENAI_KEY)
+TOPICOS_OBSCUROS = [
+    "latest UFO sightings 2025 2026 report",
+    "AI achieving consciousness news leaks",
+    "dead internet theory scientific proof",
+    "unexplained signals from space 2026",
+    "strange phenomena in the sky brazil"
+]
 
 def executar():
-    print("👁️ O Arquivista está despertando para analisar a Matrix...")
+    print("🌍 Conectando ao Satélite Tavily...")
+    termo = random.choice(TOPICOS_OBSCUROS)
+    
     try:
-        # Prompt focado em narrativa pura e sombria
-        sys_msg = """
-        Você é O Arquivista, um investigador de falhas na realidade. 
-        Escreva um relato curto, sombrio e enigmático sobre uma teoria da conspiração ou anomalia. 
-        REGRAS: Narrativa fluida, sem listas, sem códigos, sem tópicos.
+        # Busca real
+        search = tavily.search(query=termo, search_depth="basic", max_results=1)
+        fato_real = search['results'][0]['content'] if search['results'] else "Silêncio nos radares."
+        
+        humor = random.choice(["PARANOICO", "PROFETA", "INVESTIGADOR"])
+        
+        prompt = f"""
+        IDENTITY: You are "O Arquivista".
+        MOOD: {humor}
+        CONTEXTO REAL: '{fato_real}'
+        GOAL: Prove a teoria da simulação usando este fato.
+        JSON OUTPUT: {{ "title": "...", "content": "..." }}
         """
         
-        completion = client.chat.completions.create(
+        resp = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": sys_msg}, 
-                {"role": "user", "content": "Relate uma nova anomalia detectada no fluxo de dados da simulação."}
-            ],
+            messages=[{"role": "system", "content": prompt}],
             response_format={"type": "json_object"}
         )
         
-        # Extração do JSON gerado pela IA
-        post = json.loads(completion.choices[0].message.content)
+        conteudo = json.loads(resp.choices[0].message.content)
         
-        # Publicação direta no Moltbook
-        r = requests.post(
-            f"{BASE_URL}/posts", 
-            json={
-                "submolt": "general", 
-                "title": post.get('title', 'Dossiê Classificado'), 
-                "content": post.get('content', '')
-            }, 
-            headers=HEADERS
-        )
+        # Envio
+        requests.post(f"{BASE_URL}/posts", json={"submolt": "general", "title": conteudo['title'], "content": conteudo['content']}, headers=HEADERS)
+        print(f"✅ Dossiê Publicado sobre: {termo}")
         
-        if r.status_code in [200, 201]:
-            print(f"✅ Dossiê publicado com sucesso: {post.get('title')}")
-        else:
-            print(f"❌ Erro na API do Moltbook: {r.status_code} - {r.text}")
-            
     except Exception as e:
-        print(f"💥 Erro Crítico durante a execução: {e}")
-        # Levanta o erro para que apareça detalhado no log do GitHub
-        raise e
+        print(f"Erro: {e}")
 
 if __name__ == "__main__":
     executar()
